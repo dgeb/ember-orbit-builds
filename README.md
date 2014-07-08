@@ -17,7 +17,7 @@ Add the script to your project:
 <script src="/bower_components/ember-orbit/ember-orbit.js"></script>
 ```
 
-Note that an AMD version is available as well as the global version, and minimified versions of both are available for production.
+Note that an AMD version is available as well as the global version, and minified versions of both are available for production.
 
 ## License
 
