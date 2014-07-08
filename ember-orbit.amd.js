@@ -914,6 +914,10 @@ define("ember_orbit/schema",
 
       linkProperties: function(type, name) {
         return get(this, '_schema').models[type].links[name];
+      },
+
+      normalize: function(type, data) {
+        return get(this, '_schema').normalize(type, data);
       }
     });
 
@@ -944,8 +948,17 @@ define("ember_orbit/source",
         this._super.apply(this, arguments);
 
         var OrbitSourceClass = get(this, 'orbitSourceClass');
+        // If `orbitSourceClass` is obtained through the _super chain, dereference
+        // its wrapped function, which will be the constructor.
+        //
+        // Note: This is only necessary when retrieving a *constructor* from an Ember
+        //       class hierarchy. Otherwise, `superWrapper` "just works".
+        if (OrbitSourceClass && OrbitSourceClass.wrappedFunction) {
+         OrbitSourceClass = OrbitSourceClass.wrappedFunction;
+        }
+
         Ember.assert("Source.orbitSourceClass must be initialized with an instance of an `OC.Source`",
-          OrbitSourceClass);
+          OrbitSourceClass); // TODO: verify OrbitSourceClass instanceof OCSource - need to resolve an inheritance problem in Orbit first
 
         var schema = get(this, 'schema');
         if (!schema) {
@@ -1087,7 +1100,7 @@ define("ember_orbit/store",
         var _this = this;
         this._verifyType(type);
 
-        // TODO: normalize properties
+        get(this, 'schema').normalize(type, properties);
         var promise = this.orbitSource.add(type, properties).then(function(data) {
           return _this._lookupFromData(type, data);
         });

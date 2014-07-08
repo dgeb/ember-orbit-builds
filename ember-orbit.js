@@ -1,44 +1,6 @@
 (function(global) {
-var define, requireModule;
-
-(function() {
-  var registry = {}, seen = {};
-
-  define = function(name, deps, callback) {
-    registry[name] = { deps: deps, callback: callback };
-  };
-
-  requireModule = function(name) {
-    if (seen[name]) { return seen[name]; }
-    seen[name] = {};
-
-    var mod = registry[name];
-
-    if (!mod) {
-      throw new Error("Module: '" + name + "' not found.");
-    }
-
-    var deps = mod.deps,
-        callback = mod.callback,
-        reified = [],
-        exports;
-
-    for (var i=0, l=deps.length; i<l; i++) {
-      if (deps[i] === 'exports') {
-        reified.push(exports = {});
-      } else {
-        reified.push(requireModule(deps[i]));
-      }
-    }
-
-    var value = callback.apply(this, reified);
-    return seen[name] = exports || value;
-  };
-
-  define.registry = registry;
-  define.seen = seen;
-})();
-
+var define = global.Orbit.__defineModule__;
+var requireModule = global.Orbit.__requireModule__;
 define("ember_orbit",
   ["ember_orbit/main","ember_orbit/store","ember_orbit/model","ember_orbit/record_array_manager","ember_orbit/schema","ember_orbit/source","ember_orbit/attr","ember_orbit/links/has_many_array","ember_orbit/links/has_one_object","ember_orbit/links/link_proxy_mixin","ember_orbit/record_arrays/filtered_record_array","ember_orbit/record_arrays/record_array","ember_orbit/relationships/has_many","ember_orbit/relationships/has_one"],
   function(EO, Store, Model, RecordArrayManager, Schema, Source, attr, HasManyArray, HasOneObject, LinkProxyMixin, FilteredRecordArray, RecordArray, hasMany, hasOne) {
@@ -955,6 +917,10 @@ define("ember_orbit/schema",
 
       linkProperties: function(type, name) {
         return get(this, '_schema').models[type].links[name];
+      },
+
+      normalize: function(type, data) {
+        return get(this, '_schema').normalize(type, data);
       }
     });
 
@@ -985,8 +951,17 @@ define("ember_orbit/source",
         this._super.apply(this, arguments);
 
         var OrbitSourceClass = get(this, 'orbitSourceClass');
+        // If `orbitSourceClass` is obtained through the _super chain, dereference
+        // its wrapped function, which will be the constructor.
+        //
+        // Note: This is only necessary when retrieving a *constructor* from an Ember
+        //       class hierarchy. Otherwise, `superWrapper` "just works".
+        if (OrbitSourceClass && OrbitSourceClass.wrappedFunction) {
+         OrbitSourceClass = OrbitSourceClass.wrappedFunction;
+        }
+
         Ember.assert("Source.orbitSourceClass must be initialized with an instance of an `OC.Source`",
-          OrbitSourceClass);
+          OrbitSourceClass); // TODO: verify OrbitSourceClass instanceof OCSource - need to resolve an inheritance problem in Orbit first
 
         var schema = get(this, 'schema');
         if (!schema) {
@@ -1128,7 +1103,7 @@ define("ember_orbit/store",
         var _this = this;
         this._verifyType(type);
 
-        // TODO: normalize properties
+        get(this, 'schema').normalize(type, properties);
         var promise = this.orbitSource.add(type, properties).then(function(data) {
           return _this._lookupFromData(type, data);
         });
