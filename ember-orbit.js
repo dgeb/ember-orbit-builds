@@ -1,10 +1,24 @@
 (function(global) {
 var define = global.Orbit.__defineModule__;
 var requireModule = global.Orbit.__requireModule__;
-define("ember_orbit",
-  ["ember_orbit/main","ember_orbit/store","ember_orbit/model","ember_orbit/record_array_manager","ember_orbit/schema","ember_orbit/source","ember_orbit/attr","ember_orbit/links/has_many_array","ember_orbit/links/has_one_object","ember_orbit/links/link_proxy_mixin","ember_orbit/record_arrays/filtered_record_array","ember_orbit/record_arrays/record_array","ember_orbit/relationships/has_many","ember_orbit/relationships/has_one"],
-  function(EO, Store, Model, RecordArrayManager, Schema, Source, attr, HasManyArray, HasOneObject, LinkProxyMixin, FilteredRecordArray, RecordArray, hasMany, hasOne) {
+define("ember_orbit", 
+  ["ember_orbit/main","ember_orbit/store","ember_orbit/model","ember_orbit/record_array_manager","ember_orbit/schema","ember_orbit/source","ember_orbit/attr","ember_orbit/links/has_many_array","ember_orbit/links/has_one_object","ember_orbit/links/link_proxy_mixin","ember_orbit/record_arrays/filtered_record_array","ember_orbit/record_arrays/record_array","ember_orbit/relationships/has_many","ember_orbit/relationships/has_one","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __dependency7__, __dependency8__, __dependency9__, __dependency10__, __dependency11__, __dependency12__, __dependency13__, __dependency14__, __exports__) {
     "use strict";
+    var EO = __dependency1__["default"];
+    var Store = __dependency2__["default"];
+    var Model = __dependency3__["default"];
+    var RecordArrayManager = __dependency4__["default"];
+    var Schema = __dependency5__["default"];
+    var Source = __dependency6__["default"];
+    var attr = __dependency7__["default"];
+    var HasManyArray = __dependency8__["default"];
+    var HasOneObject = __dependency9__["default"];
+    var LinkProxyMixin = __dependency10__["default"];
+    var FilteredRecordArray = __dependency11__["default"];
+    var RecordArray = __dependency12__["default"];
+    var hasMany = __dependency13__["default"];
+    var hasOne = __dependency14__["default"];
 
     EO.Store = Store;
     EO.Model = Model;
@@ -20,12 +34,11 @@ define("ember_orbit",
     EO.hasOne = hasOne;
     EO.hasMany = hasMany;
 
-
-    return EO;
+    __exports__["default"] = EO;
   });
-define("ember_orbit/attr",
-  [],
-  function() {
+define("ember_orbit/attr", 
+  ["exports"],
+  function(__exports__) {
     "use strict";
     /**
      @module ember-orbit
@@ -56,13 +69,14 @@ define("ember_orbit/attr",
       }).meta(meta);
     };
 
-
-    return attr;
+    __exports__["default"] = attr;
   });
-define("ember_orbit/links/has_many_array",
-  ["ember_orbit/record_arrays/record_array","ember_orbit/links/link_proxy_mixin"],
-  function(RecordArray, LinkProxyMixin) {
+define("ember_orbit/links/has_many_array", 
+  ["./../record_arrays/record_array","./link_proxy_mixin","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
+    var RecordArray = __dependency1__["default"];
+    var LinkProxyMixin = __dependency2__["default"];
 
     /**
      @module ember-orbit
@@ -121,13 +135,13 @@ define("ember_orbit/links/has_many_array",
 
     });
 
-
-    return HasManyArray;
+    __exports__["default"] = HasManyArray;
   });
-define("ember_orbit/links/has_one_object",
-  ["ember_orbit/links/link_proxy_mixin"],
-  function(LinkProxyMixin) {
+define("ember_orbit/links/has_one_object", 
+  ["./link_proxy_mixin","exports"],
+  function(__dependency1__, __exports__) {
     "use strict";
+    var LinkProxyMixin = __dependency1__["default"];
 
     /**
      @module ember-orbit
@@ -143,12 +157,11 @@ define("ember_orbit/links/has_one_object",
      */
     var HasOneObject = Ember.ObjectProxy.extend(LinkProxyMixin);
 
-
-    return HasOneObject;
+    __exports__["default"] = HasOneObject;
   });
-define("ember_orbit/links/link_proxy_mixin",
-  [],
-  function() {
+define("ember_orbit/links/link_proxy_mixin", 
+  ["exports"],
+  function(__exports__) {
     "use strict";
     /**
      @module ember-orbit
@@ -177,11 +190,11 @@ define("ember_orbit/links/link_proxy_mixin",
       }
     });
 
-    return LinkProxyMixin;
+    __exports__["default"] = LinkProxyMixin;
   });
-define("ember_orbit/main",
-  [],
-  function() {
+define("ember_orbit/main", 
+  ["exports"],
+  function(__exports__) {
     "use strict";
     /**
      @module ember-orbit
@@ -189,12 +202,14 @@ define("ember_orbit/main",
 
     var EO = {};
 
-    return EO;
+    __exports__["default"] = EO;
   });
-define("ember_orbit/model",
-  ["ember_orbit/links/has_one_object","ember_orbit/links/has_many_array"],
-  function(HasOneObject, HasManyArray) {
+define("ember_orbit/model", 
+  ["./links/has_one_object","./links/has_many_array","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
+    var HasOneObject = __dependency1__["default"];
+    var HasManyArray = __dependency2__["default"];
 
     /**
      @module ember-orbit
@@ -339,13 +354,14 @@ define("ember_orbit/model",
       })
     });
 
-
-    return Model;
+    __exports__["default"] = Model;
   });
-define("ember_orbit/record_array_manager",
-  ["ember_orbit/record_arrays/record_array","ember_orbit/record_arrays/filtered_record_array"],
-  function(RecordArray, FilteredRecordArray) {
+define("ember_orbit/record_array_manager", 
+  ["./record_arrays/record_array","./record_arrays/filtered_record_array","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
+    var RecordArray = __dependency1__["default"];
+    var FilteredRecordArray = __dependency2__["default"];
 
     /**
      @module ember-orbit
@@ -605,13 +621,13 @@ define("ember_orbit/record_array_manager",
       return result;
     }
 
-
-    return RecordArrayManager;
+    __exports__["default"] = RecordArrayManager;
   });
-define("ember_orbit/record_arrays/filtered_record_array",
-  ["ember_orbit/record_arrays/record_array"],
-  function(RecordArray) {
+define("ember_orbit/record_arrays/filtered_record_array", 
+  ["./record_array","exports"],
+  function(__dependency1__, __exports__) {
     "use strict";
+    var RecordArray = __dependency1__["default"];
 
     /**
      @module ember-orbit
@@ -651,12 +667,11 @@ define("ember_orbit/record_arrays/filtered_record_array",
       }, 'filterFunction')
     });
 
-
-    return FilteredRecordArray;
+    __exports__["default"] = FilteredRecordArray;
   });
-define("ember_orbit/record_arrays/record_array",
-  [],
-  function() {
+define("ember_orbit/record_arrays/record_array", 
+  ["exports"],
+  function(__exports__) {
     "use strict";
     /**
      @module ember-orbit
@@ -749,12 +764,11 @@ define("ember_orbit/record_arrays/record_array",
       }
     });
 
-
-    return RecordArray;
+    __exports__["default"] = RecordArray;
   });
-define("ember_orbit/relationships/has_many",
-  [],
-  function() {
+define("ember_orbit/relationships/has_many", 
+  ["exports"],
+  function(__exports__) {
     "use strict";
     /**
      @module ember-orbit
@@ -775,12 +789,11 @@ define("ember_orbit/relationships/has_many",
       }).meta(meta).readOnly();
     };
 
-
-    return hasMany;
+    __exports__["default"] = hasMany;
   });
-define("ember_orbit/relationships/has_one",
-  [],
-  function() {
+define("ember_orbit/relationships/has_one", 
+  ["exports"],
+  function(__exports__) {
     "use strict";
     /**
      @module ember-orbit
@@ -816,13 +829,13 @@ define("ember_orbit/relationships/has_one",
       }).meta(meta);
     };
 
-
-    return hasOne;
+    __exports__["default"] = hasOne;
   });
-define("ember_orbit/schema",
-  ["orbit_common/schema"],
-  function(OrbitSchema) {
+define("ember_orbit/schema", 
+  ["orbit_common/schema","exports"],
+  function(__dependency1__, __exports__) {
     "use strict";
+    var OrbitSchema = __dependency1__["default"];
 
     /**
      @module ember-orbit
@@ -924,12 +937,14 @@ define("ember_orbit/schema",
       }
     });
 
-    return Schema;
+    __exports__["default"] = Schema;
   });
-define("ember_orbit/source",
-  ["ember_orbit/schema","orbit_common/source"],
-  function(Schema, OCSource) {
+define("ember_orbit/source", 
+  ["./schema","orbit_common/source","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
+    var Schema = __dependency1__["default"];
+    var OCSource = __dependency2__["default"];
 
     /**
      @module ember-orbit
@@ -976,12 +991,16 @@ define("ember_orbit/source",
       }
     });
 
-    return Source;
+    __exports__["default"] = Source;
   });
-define("ember_orbit/store",
-  ["ember_orbit/source","ember_orbit/model","ember_orbit/record_array_manager","orbit_common/memory_source"],
-  function(Source, Model, RecordArrayManager, OCMemorySource) {
+define("ember_orbit/store", 
+  ["./source","./model","./record_array_manager","orbit_common/memory_source","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
     "use strict";
+    var Source = __dependency1__["default"];
+    var Model = __dependency2__["default"];
+    var RecordArrayManager = __dependency3__["default"];
+    var OCMemorySource = __dependency4__["default"];
 
     /**
      @module ember-orbit
@@ -1293,7 +1312,7 @@ define("ember_orbit/store",
       }
     });
 
-    return Store;
+    __exports__["default"] = Store;
   });
 global.EO = requireModule('ember_orbit');
 }(window));
