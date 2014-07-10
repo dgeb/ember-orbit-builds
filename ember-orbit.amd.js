@@ -1,5 +1,5 @@
-define("ember_orbit", 
-  ["ember_orbit/main","ember_orbit/store","ember_orbit/model","ember_orbit/record_array_manager","ember_orbit/schema","ember_orbit/source","ember_orbit/attr","ember_orbit/links/has_many_array","ember_orbit/links/has_one_object","ember_orbit/links/link_proxy_mixin","ember_orbit/record_arrays/filtered_record_array","ember_orbit/record_arrays/record_array","ember_orbit/relationships/has_many","ember_orbit/relationships/has_one","exports"],
+define("ember-orbit", 
+  ["ember-orbit/main","ember-orbit/store","ember-orbit/model","ember-orbit/record-array-manager","ember-orbit/schema","ember-orbit/source","ember-orbit/attr","ember-orbit/links/has-many-array","ember-orbit/links/has-one-object","ember-orbit/links/link-proxy-mixin","ember-orbit/record-arrays/filtered-record-array","ember-orbit/record-arrays/record-array","ember-orbit/relationships/has-many","ember-orbit/relationships/has-one","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __dependency7__, __dependency8__, __dependency9__, __dependency10__, __dependency11__, __dependency12__, __dependency13__, __dependency14__, __exports__) {
     "use strict";
     var EO = __dependency1__["default"];
@@ -33,7 +33,7 @@ define("ember_orbit",
 
     __exports__["default"] = EO;
   });
-define("ember_orbit/attr", 
+define("ember-orbit/attr", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -68,8 +68,8 @@ define("ember_orbit/attr",
 
     __exports__["default"] = attr;
   });
-define("ember_orbit/links/has_many_array", 
-  ["./../record_arrays/record_array","./link_proxy_mixin","exports"],
+define("ember-orbit/links/has-many-array", 
+  ["./../record-arrays/record-array","./link-proxy-mixin","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var RecordArray = __dependency1__["default"];
@@ -134,8 +134,8 @@ define("ember_orbit/links/has_many_array",
 
     __exports__["default"] = HasManyArray;
   });
-define("ember_orbit/links/has_one_object", 
-  ["./link_proxy_mixin","exports"],
+define("ember-orbit/links/has-one-object", 
+  ["./link-proxy-mixin","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
     var LinkProxyMixin = __dependency1__["default"];
@@ -156,7 +156,7 @@ define("ember_orbit/links/has_one_object",
 
     __exports__["default"] = HasOneObject;
   });
-define("ember_orbit/links/link_proxy_mixin", 
+define("ember-orbit/links/link-proxy-mixin", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -189,7 +189,7 @@ define("ember_orbit/links/link_proxy_mixin",
 
     __exports__["default"] = LinkProxyMixin;
   });
-define("ember_orbit/main", 
+define("ember-orbit/main", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -201,8 +201,8 @@ define("ember_orbit/main",
 
     __exports__["default"] = EO;
   });
-define("ember_orbit/model", 
-  ["./links/has_one_object","./links/has_many_array","exports"],
+define("ember-orbit/model", 
+  ["./links/has-one-object","./links/has-many-array","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var HasOneObject = __dependency1__["default"];
@@ -353,8 +353,8 @@ define("ember_orbit/model",
 
     __exports__["default"] = Model;
   });
-define("ember_orbit/record_array_manager", 
-  ["./record_arrays/record_array","./record_arrays/filtered_record_array","exports"],
+define("ember-orbit/record-array-manager", 
+  ["./record-arrays/record-array","./record-arrays/filtered-record-array","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var RecordArray = __dependency1__["default"];
@@ -620,8 +620,8 @@ define("ember_orbit/record_array_manager",
 
     __exports__["default"] = RecordArrayManager;
   });
-define("ember_orbit/record_arrays/filtered_record_array", 
-  ["./record_array","exports"],
+define("ember-orbit/record-arrays/filtered-record-array", 
+  ["./record-array","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
     var RecordArray = __dependency1__["default"];
@@ -666,7 +666,7 @@ define("ember_orbit/record_arrays/filtered_record_array",
 
     __exports__["default"] = FilteredRecordArray;
   });
-define("ember_orbit/record_arrays/record_array", 
+define("ember-orbit/record-arrays/record-array", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -763,7 +763,7 @@ define("ember_orbit/record_arrays/record_array",
 
     __exports__["default"] = RecordArray;
   });
-define("ember_orbit/relationships/has_many", 
+define("ember-orbit/relationships/has-many", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -788,7 +788,7 @@ define("ember_orbit/relationships/has_many",
 
     __exports__["default"] = hasMany;
   });
-define("ember_orbit/relationships/has_one", 
+define("ember-orbit/relationships/has-one", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -828,8 +828,8 @@ define("ember_orbit/relationships/has_one",
 
     __exports__["default"] = hasOne;
   });
-define("ember_orbit/schema", 
-  ["orbit_common/schema","exports"],
+define("ember-orbit/schema", 
+  ["orbit-common/schema","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
     var OrbitSchema = __dependency1__["default"];
@@ -936,8 +936,8 @@ define("ember_orbit/schema",
 
     __exports__["default"] = Schema;
   });
-define("ember_orbit/source", 
-  ["./schema","orbit_common/source","exports"],
+define("ember-orbit/source", 
+  ["./schema","orbit-common/source","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var Schema = __dependency1__["default"];
@@ -990,8 +990,8 @@ define("ember_orbit/source",
 
     __exports__["default"] = Source;
   });
-define("ember_orbit/store", 
-  ["./source","./model","./record_array_manager","orbit_common/memory_source","exports"],
+define("ember-orbit/store", 
+  ["./source","./model","./record-array-manager","orbit-common/memory-source","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
     "use strict";
     var Source = __dependency1__["default"];
