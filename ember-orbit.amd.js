@@ -1,6 +1,6 @@
 define("ember-orbit", 
-  ["ember-orbit/main","ember-orbit/store","ember-orbit/model","ember-orbit/record-array-manager","ember-orbit/schema","ember-orbit/source","ember-orbit/attr","ember-orbit/links/has-many-array","ember-orbit/links/has-one-object","ember-orbit/links/link-proxy-mixin","ember-orbit/record-arrays/filtered-record-array","ember-orbit/record-arrays/record-array","ember-orbit/relationships/has-many","ember-orbit/relationships/has-one","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __dependency7__, __dependency8__, __dependency9__, __dependency10__, __dependency11__, __dependency12__, __dependency13__, __dependency14__, __exports__) {
+  ["ember-orbit/main","ember-orbit/store","ember-orbit/model","ember-orbit/record-array-manager","ember-orbit/schema","ember-orbit/source","ember-orbit/fields/key","ember-orbit/fields/attr","ember-orbit/fields/has-many","ember-orbit/fields/has-one","ember-orbit/links/has-many-array","ember-orbit/links/has-one-object","ember-orbit/links/link-proxy-mixin","ember-orbit/record-arrays/filtered-record-array","ember-orbit/record-arrays/record-array","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __dependency7__, __dependency8__, __dependency9__, __dependency10__, __dependency11__, __dependency12__, __dependency13__, __dependency14__, __dependency15__, __exports__) {
     "use strict";
     var EO = __dependency1__["default"];
     var Store = __dependency2__["default"];
@@ -8,32 +8,34 @@ define("ember-orbit",
     var RecordArrayManager = __dependency4__["default"];
     var Schema = __dependency5__["default"];
     var Source = __dependency6__["default"];
-    var attr = __dependency7__["default"];
-    var HasManyArray = __dependency8__["default"];
-    var HasOneObject = __dependency9__["default"];
-    var LinkProxyMixin = __dependency10__["default"];
-    var FilteredRecordArray = __dependency11__["default"];
-    var RecordArray = __dependency12__["default"];
-    var hasMany = __dependency13__["default"];
-    var hasOne = __dependency14__["default"];
+    var key = __dependency7__["default"];
+    var attr = __dependency8__["default"];
+    var hasMany = __dependency9__["default"];
+    var hasOne = __dependency10__["default"];
+    var HasManyArray = __dependency11__["default"];
+    var HasOneObject = __dependency12__["default"];
+    var LinkProxyMixin = __dependency13__["default"];
+    var FilteredRecordArray = __dependency14__["default"];
+    var RecordArray = __dependency15__["default"];
 
     EO.Store = Store;
     EO.Model = Model;
     EO.RecordArrayManager = RecordArrayManager;
     EO.Schema = Schema;
     EO.Source = Source;
+    EO.key = key;
     EO.attr = attr;
+    EO.hasOne = hasOne;
+    EO.hasMany = hasMany;
     EO.HasManyArray = HasManyArray;
     EO.HasOneObject = HasOneObject;
     EO.LinkProxyMixin = LinkProxyMixin;
     EO.FilteredRecordArray = FilteredRecordArray;
     EO.RecordArray = RecordArray;
-    EO.hasOne = hasOne;
-    EO.hasMany = hasMany;
 
     __exports__["default"] = EO;
   });
-define("ember-orbit/attr", 
+define("ember-orbit/fields/attr", 
   ["exports"],
   function(__exports__) {
     "use strict";
@@ -68,6 +70,111 @@ define("ember-orbit/attr",
 
     __exports__["default"] = attr;
   });
+define("ember-orbit/fields/has-many", 
+  ["exports"],
+  function(__exports__) {
+    "use strict";
+    /**
+     @module ember-orbit
+     */
+
+    var hasMany = function(model, options) {
+      options = options || {};
+      options.type = 'hasMany';
+      options.model = model;
+
+      var meta = {
+        options: options,
+        isLink: true
+      };
+
+      return Ember.computed(function(key) {
+        return this.getLinks(key);
+      }).meta(meta).readOnly();
+    };
+
+    __exports__["default"] = hasMany;
+  });
+define("ember-orbit/fields/has-one", 
+  ["exports"],
+  function(__exports__) {
+    "use strict";
+    /**
+     @module ember-orbit
+     */
+
+    var get = Ember.get,
+        set = Ember.set;
+
+    var hasOne = function(model, options) {
+      options = options || {};
+      options.type = 'hasOne';
+      options.model = model;
+
+      var meta = {
+        options: options,
+        isLink: true
+      };
+
+      return Ember.computed(function(key, value) {
+        var proxy = this.getLink(key);
+
+        if (arguments.length > 1) {
+          if (value !== get(proxy, 'content')) {
+            proxy.setProperties({
+              content: value,
+              promise: this.addLink(key, value)
+            });
+          }
+        }
+
+        return proxy;
+
+      }).meta(meta);
+    };
+
+    __exports__["default"] = hasOne;
+  });
+define("ember-orbit/fields/key", 
+  ["exports"],
+  function(__exports__) {
+    "use strict";
+    /**
+     @module ember-orbit
+     */
+
+    var key = function(type, options) {
+      if (arguments.length === 1 && typeof type === 'object') {
+        options = type;
+        type = null; // use default below
+      }
+
+      options = options || {};
+      options.type = type || 'string';
+
+      var meta = {
+        options: options,
+        isKey: true
+      };
+
+      return Ember.computed(function(name, value) {
+        if (arguments.length > 1) {
+          var oldValue = this.getKey(name);
+
+          if (value !== oldValue) {
+            this.patch(name, value);
+          }
+
+          return value;
+
+        } else {
+          return this.getKey(name);
+        }
+      }).meta(meta);
+    };
+
+    __exports__["default"] = key;
+  });
 define("ember-orbit/links/has-many-array", 
   ["./../record-arrays/record-array","./link-proxy-mixin","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
@@ -96,17 +203,16 @@ define("ember-orbit/links/has-many-array",
 
       arrayContentWillChange: function(index, removed, added) {
         var store = get(this, 'store');
-        var idField = get(store, 'idField');
         var ownerType = get(this, '_ownerType');
         var ownerId = get(this, '_ownerId');
-        var linkKey = get(this, '_linkKey');
+        var linkField = get(this, '_linkField');
         var content = get(this, 'content');
         var record, recordId;
 
         for (var i = index; i < index + removed; i++) {
           record = content.objectAt(i);
-          recordId = get(record, idField);
-          store.removeLink(ownerType, ownerId, linkKey, recordId);
+          recordId = record.primaryId;
+          store.removeLink(ownerType, ownerId, linkField, recordId);
         }
 
         return this._super.apply(this, arguments);
@@ -116,17 +222,16 @@ define("ember-orbit/links/has-many-array",
         this._super.apply(this, arguments);
 
         var store = get(this, 'store');
-        var idField = get(store, 'idField');
         var ownerType = get(this, '_ownerType');
         var ownerId = get(this, '_ownerId');
-        var linkKey = get(this, '_linkKey');
+        var linkField = get(this, '_linkField');
         var content = get(this, 'content');
         var record, recordId;
 
         for (var i = index; i < index + added; i++) {
           record = content.objectAt(i);
-          recordId = get(record, idField);
-          store.addLink(ownerType, ownerId, linkKey, recordId);
+          recordId = record.primaryId;
+          store.addLink(ownerType, ownerId, linkField, recordId);
         }
       }
 
@@ -174,14 +279,14 @@ define("ember-orbit/links/link-proxy-mixin",
 
       _ownerType: null,
 
-      _linkKey: null,
+      _linkField: null,
 
       find: function() {
         var store = get(this, 'store');
-        var promise = store.findLink.call(store,
+        var promise = store.findLinked.call(store,
           get(this, '_ownerType'),
           get(this, '_ownerId'),
-          get(this, '_linkKey')
+          get(this, '_linkField')
         );
         return promise;
       }
@@ -202,103 +307,114 @@ define("ember-orbit/main",
     __exports__["default"] = EO;
   });
 define("ember-orbit/model", 
-  ["./links/has-one-object","./links/has-many-array","exports"],
-  function(__dependency1__, __dependency2__, __exports__) {
+  ["./links/has-one-object","./links/has-many-array","ember-orbit/fields/key","orbit/lib/uuid","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
     "use strict";
     var HasOneObject = __dependency1__["default"];
     var HasManyArray = __dependency2__["default"];
+    var key = __dependency3__["default"];
+    var uuid = __dependency4__.uuid;
 
     /**
      @module ember-orbit
      */
 
     var get = Ember.get;
+    var set = Ember.set;
 
     /**
      @class Model
      @namespace EO
      */
     var Model = Ember.Object.extend(Ember.Evented, {
-      getAttribute: function(key) {
-        var store = get(this, 'store');
-        var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
+      primaryId: null,
 
-        return store.retrieveAttribute(type, id, key);
+      getKey: function(field) {
+        var store = get(this, 'store');
+        var pk = this.constructor.primaryKey;
+
+        if (pk === field) {
+          return this.primaryId;
+        } else {
+          var type = this.constructor.typeKey;
+          return store.retrieveKey(type, this.primaryId, field);
+        }
       },
 
-      getLink: function(key) {
+      getAttribute: function(field) {
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
+        var id = get(this, 'primaryId');
 
-        var relatedRecord = store.retrieveLink(type, id, key) || null;
+        return store.retrieveAttribute(type, id, field);
+      },
+
+      getLink: function(field) {
+        var store = get(this, 'store');
+        var type = this.constructor.typeKey;
+        var id = get(this, 'primaryId');
+
+        var relatedRecord = store.retrieveLink(type, id, field) || null;
 
         var hasOneObject = HasOneObject.create({
           content: relatedRecord,
           store: store,
           _ownerId: id,
           _ownerType: type,
-          _linkKey: key
+          _linkField: field
         });
 
-        this._assignLink(key, hasOneObject);
+        this._assignLink(field, hasOneObject);
 
         return hasOneObject;
       },
 
-      getLinks: function(key) {
+      getLinks: function(field) {
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
+        var id = get(this, 'primaryId');
 
-        var relatedRecords = store.retrieveLinks(type, id, key) || Ember.A();
+        var relatedRecords = store.retrieveLinks(type, id, field) || Ember.A();
 
         var hasManyArray = HasManyArray.create({
           content: relatedRecords,
           store: this.store,
           _ownerId: id,
           _ownerType: type,
-          _linkKey: key
+          _linkField: field
         });
 
-        this._assignLink(key, hasManyArray);
+        this._assignLink(field, hasManyArray);
 
         return hasManyArray;
       },
 
-      patch: function(key, value) {
+      patch: function(field, value) {
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
 
-        return store.patch(type, id, key, value);
+        return store.patch(type, this.primaryId, field, value);
       },
 
-      addLink: function(key, relatedRecord) {
+      addLink: function(field, relatedRecord) {
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
-        var relatedId = get(relatedRecord, get(store, 'idField'));
 
-        return store.addLink(type, id, key, relatedId);
+        return store.addLink(type, this.primaryId, field, relatedRecord.primaryId);
       },
 
-      removeLink: function(key, relatedRecord) {
+      removeLink: function(field, relatedRecord) {
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
-        var relatedId = get(relatedRecord, get(store, 'idField'));
 
-        return store.removeLink(type, id, key, relatedId);
+        return store.removeLink(type, this.primaryId, field, relatedRecord.primaryId);
       },
 
       remove: function() {
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
 
-        return store.remove(type, id);
+        return store.remove(type, this.primaryId);
       },
 
       willDestroy: function() {
@@ -306,23 +422,72 @@ define("ember-orbit/model",
 
         var store = get(this, 'store');
         var type = this.constructor.typeKey;
-        var id = get(this, get(store, 'idField'));
 
-        store.unload(type, id);
+        store.unload(type, this.primaryId);
       },
 
-      _assignLink: function(key, value) {
+      _assignLink: function(field, value) {
         this._links = this._links || {};
-        this._links[key] = value;
+        this._links[field] = value;
       }
     });
 
+    var _create = Model.create;
+
     Model.reopenClass({
-      _create: Model.create,
+      _create: function(store, id) {
+        var record = _create.call(this, {store: store});
+        set(record, 'primaryId', id);
+        return record;
+      },
 
       create: function() {
         throw new Ember.Error("You should not call `create` on a model. Instead, call `store.add` with the attributes you would like to set.");
       },
+
+      primaryKey: Ember.computed('keys', function() {
+        if (arguments.length > 1) {
+          throw new Ember.Error("You should not set `primaryKey` on a model. Instead, define a `key` with the options `{primaryKey: true, defaultValue: idGenerator}`.");
+        }
+
+        var keys = get(this, 'keys');
+        var keyNames = Object.keys(keys);
+        for (var k in keyNames) {
+          var keyName = keyNames[k];
+          if (keys[keyName].primaryKey) {
+            return keyName;
+          }
+        }
+      }),
+
+      keys: Ember.computed(function() {
+        var map = {};
+        var _this = this;
+        var primaryKey;
+
+        function evaluateKeys() {
+          _this.eachComputedProperty(function(name, meta) {
+            if (meta.isKey) {
+              meta.name = name;
+              map[name] = meta.options;
+              if (meta.options.primaryKey) {
+                primaryKey = name;
+              }
+            }
+          });
+        }
+        evaluateKeys();
+
+        // Set a single primary key named `id` if no other has been defined
+        if (!primaryKey) {
+          this.reopen({
+            id: key({primaryKey: true, defaultValue: uuid})
+          });
+          evaluateKeys();
+        }
+
+        return map;
+      }),
 
       attributes: Ember.computed(function() {
         var map = {};
@@ -763,76 +928,13 @@ define("ember-orbit/record-arrays/record-array",
 
     __exports__["default"] = RecordArray;
   });
-define("ember-orbit/relationships/has-many", 
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    /**
-     @module ember-orbit
-     */
-
-    var hasMany = function(model, options) {
-      options = options || {};
-      options.type = 'hasMany';
-      options.model = model;
-
-      var meta = {
-        options: options,
-        isLink: true
-      };
-
-      return Ember.computed(function(key) {
-        return this.getLinks(key);
-      }).meta(meta).readOnly();
-    };
-
-    __exports__["default"] = hasMany;
-  });
-define("ember-orbit/relationships/has-one", 
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    /**
-     @module ember-orbit
-     */
-
-    var get = Ember.get,
-        set = Ember.set;
-
-    var hasOne = function(model, options) {
-      options = options || {};
-      options.type = 'hasOne';
-      options.model = model;
-
-      var meta = {
-        options: options,
-        isLink: true
-      };
-
-      return Ember.computed(function(key, value) {
-        var proxy = this.getLink(key);
-
-        if (arguments.length > 1) {
-          if (value !== get(proxy, 'content')) {
-            proxy.setProperties({
-              content: value,
-              promise: this.addLink(key, value)
-            });
-          }
-        }
-
-        return proxy;
-
-      }).meta(meta);
-    };
-
-    __exports__["default"] = hasOne;
-  });
 define("ember-orbit/schema", 
-  ["orbit-common/schema","exports"],
-  function(__dependency1__, __exports__) {
+  ["orbit-common/schema","ember-orbit/fields/key","orbit/lib/uuid","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
     var OrbitSchema = __dependency1__["default"];
+    var key = __dependency2__["default"];
+    var uuid = __dependency3__.uuid;
 
     /**
      @module ember-orbit
@@ -842,7 +944,7 @@ define("ember-orbit/schema",
 
     var proxyProperty = function(source, property, defaultValue) {
       var _property = '_' + property;
-      
+
       return function(key, value) {
         if (arguments.length > 1) {
           this[_property] = value;
@@ -859,38 +961,38 @@ define("ember-orbit/schema",
 
     var Schema = Ember.Object.extend({
       /**
-       @property idField
-       @type {String}
-       @default 'clientid'
-       */
-      idField: proxyProperty('_schema', 'idField', 'clientid'),
-
-      /**
-       @property remoteIdField
-       @type {String}
-       @default 'id'
-       */
-      remoteIdField: proxyProperty('_schema', 'remoteIdField', 'id'),
-
-      /**
-       @property generateId
+       @property pluralize
        @type {function}
-       @default OC.Schema.generateId
+       @default OC.Schema.pluralize
        */
-      generateId: proxyProperty('_schema', 'generateId'),
+      pluralize: proxyProperty('_schema', 'pluralize'),
+
+      /**
+       @property singularize
+       @type {function}
+       @default OC.Schema.singularize
+       */
+      singularize: proxyProperty('_schema', 'singularize'),
 
       init: function() {
         this._super.apply(this, arguments);
         this._modelTypeMap = {};
 
+        // Don't use `modelDefaults` in ember-orbit.
+        // The same functionality can be achieved with a base model class that
+        // can be overridden.
         var options = {
-          idField: get(this, 'idField'),
-          remoteIdField: get(this, 'remoteIdField')
+          modelDefaults: {}
         };
 
-        var generateId = this.get('generateId');
-        if (generateId) {
-          options.generateId = generateId;
+        var pluralize = this.get('pluralize');
+        if (pluralize) {
+          options.pluralize = pluralize;
+        }
+
+        var singularize = this.get('singularize');
+        if (singularize) {
+          options.singularize = singularize;
         }
 
         this._schema = new OrbitSchema(options);
@@ -900,6 +1002,7 @@ define("ember-orbit/schema",
         var definedModels = this._schema.models;
         if (!definedModels[type]) {
           this._schema.registerModel(type, {
+            keys: get(modelClass, 'keys'),
             attributes: get(modelClass, 'attributes'),
             links: get(modelClass, 'links')
           });
@@ -922,6 +1025,11 @@ define("ember-orbit/schema",
 
           // save model in map for faster lookups
           this._modelTypeMap[type] = model;
+
+          // look up related models
+          this.links(type).forEach(function(link) {
+            this.modelFor(this.linkProperties(type, link).model);
+          }, this);
         }
 
         return model;
@@ -929,6 +1037,22 @@ define("ember-orbit/schema",
 
       models: function() {
         return Object.keys(this._schema.models);
+      },
+
+      primaryKey: function(type) {
+        return this._schema.models[type].primaryKey.name;
+      },
+
+      primaryKeyProperties: function(type, name) {
+        return this._schema.models[type].primaryKey;
+      },
+
+      keys: function(type) {
+        return Object.keys(this._schema.models[type].keys);
+      },
+
+      keyProperties: function(type, name) {
+        return this._schema.models[type].keys[name];
       },
 
       attributes: function(type) {
@@ -948,7 +1072,7 @@ define("ember-orbit/schema",
       },
 
       normalize: function(type, data) {
-        return this._schema.normalize(type, data);
+        this._schema.normalize(type, data);
       }
     });
 
@@ -1037,7 +1161,6 @@ define("ember-orbit/store",
     var Store = Source.extend({
       orbitSourceClass: OCMemorySource,
       schema: null,
-      idField: Ember.computed.alias('schema.idField'),
 
       init: function() {
         this._super.apply(this, arguments);
@@ -1137,6 +1260,7 @@ define("ember-orbit/store",
       add: function(type, properties) {
         var _this = this;
         this._verifyType(type);
+        properties = properties || {};
 
         get(this, 'schema').normalize(type, properties);
         var promise = this.orbitSource.add(type, properties).then(function(data) {
@@ -1148,43 +1272,66 @@ define("ember-orbit/store",
 
       remove: function(type, id) {
         this._verifyType(type);
+        id = this._normalizeId(id);
 
         var promise = this.orbitSource.remove(type, id);
 
         return this._request(promise);
       },
 
-      patch: function(type, id, key, value) {
+      patch: function(type, id, field, value) {
         this._verifyType(type);
+        id = this._normalizeId(id);
 
-        var promise = this.orbitSource.patch(type, id, key, value);
+        var promise = this.orbitSource.patch(type, id, field, value);
 
         return this._request(promise);
       },
 
-      addLink: function(type, id, key, relatedId) {
+      addLink: function(type, id, field, relatedId) {
         this._verifyType(type);
+        id = this._normalizeId(id);
+        relatedId = this._normalizeId(relatedId);
 
-        var promise = this.orbitSource.addLink(type, id, key, relatedId);
+        var promise = this.orbitSource.addLink(type, id, field, relatedId);
 
         return this._request(promise);
       },
 
-      removeLink: function(type, id, key, relatedId) {
+      removeLink: function(type, id, field, relatedId) {
         this._verifyType(type);
+        id = this._normalizeId(id);
+        relatedId = this._normalizeId(relatedId);
 
-        var promise = this.orbitSource.removeLink(type, id, key, relatedId);
+        var promise = this.orbitSource.removeLink(type, id, field, relatedId);
 
         return this._request(promise);
       },
 
-      findLink: function(type, id, key) {
+      findLink: function(type, id, field) {
         var _this = this;
         this._verifyType(type);
+        id = this._normalizeId(id);
 
-        var linkType = get(this, 'schema').linkProperties(type, key).model;
+        var linkType = get(this, 'schema').linkProperties(type, field).model;
+        this._verifyType(linkType);
 
-        var promise = this.orbitSource.findLink(type, id, key).then(function(data) {
+        var promise = this.orbitSource.findLink(type, id, field).then(function(data) {
+          return _this._lookupFromData(linkType, data);
+        });
+
+        return this._request(promise);
+      },
+
+      findLinked: function(type, id, field) {
+        var _this = this;
+        this._verifyType(type);
+        id = this._normalizeId(id);
+
+        var linkType = get(this, 'schema').linkProperties(type, field).model;
+        this._verifyType(linkType);
+
+        var promise = this.orbitSource.findLinked(type, id, field).then(function(data) {
           return _this._lookupFromData(linkType, data);
         });
 
@@ -1206,40 +1353,50 @@ define("ember-orbit/store",
           return this._lookupRecords(type, ids);
 
         } else {
-          if (typeof id === 'object') {
-            var idField = get(this, 'idField');
-            id = get(id, idField);
-          }
+          id = this._normalizeId(id);
+
           if (this.orbitSource.retrieve([type, id])) {
             return this._lookupRecord(type, id);
           }
         }
       },
 
-      retrieveAttribute: function(type, id, key) {
+      retrieveKey: function(type, id, field) {
         this._verifyType(type);
+        id = this._normalizeId(id);
 
-        return this.orbitSource.retrieve([type, id, key]);
+        return this.orbitSource.retrieve([type, id, field]);
       },
 
-      retrieveLink: function(type, id, key) {
+      retrieveAttribute: function(type, id, field) {
         this._verifyType(type);
+        id = this._normalizeId(id);
 
-        var linkType = get(this, 'schema').linkProperties(type, key).model;
+        return this.orbitSource.retrieve([type, id, field]);
+      },
 
-        var relatedId = this.orbitSource.retrieve([type, id, '__rel', key]);
+      retrieveLink: function(type, id, field) {
+        this._verifyType(type);
+        id = this._normalizeId(id);
+
+        var linkType = get(this, 'schema').linkProperties(type, field).model;
+        this._verifyType(linkType);
+
+        var relatedId = this.orbitSource.retrieve([type, id, '__rel', field]);
 
         if (linkType && relatedId) {
           return this.retrieve(linkType, relatedId);
         }
       },
 
-      retrieveLinks: function(type, id, key) {
+      retrieveLinks: function(type, id, field) {
         this._verifyType(type);
+        id = this._normalizeId(id);
 
-        var linkType = get(this, 'schema').linkProperties(type, key).model;
+        var linkType = get(this, 'schema').linkProperties(type, field).model;
+        this._verifyType(linkType);
 
-        var relatedIds = Object.keys(this.orbitSource.retrieve([type, id, '__rel', key]));
+        var relatedIds = Object.keys(this.orbitSource.retrieve([type, id, '__rel', field]));
 
         if (linkType && Ember.isArray(relatedIds) && relatedIds.length > 0) {
           return this.retrieve(linkType, relatedIds);
@@ -1248,6 +1405,7 @@ define("ember-orbit/store",
 
       unload: function(type, id) {
         this._verifyType(type);
+        id = this._normalizeId(id);
 
         var typeMap = this.typeMapFor(type);
         delete typeMap.records[id];
@@ -1271,9 +1429,9 @@ define("ember-orbit/store",
 
         } else if (path.length === 4) {
           // hasOne link changed
-          var key = path[3];
-          var link = this.retrieveLink(path[0], path[1], key);
-          record.set(key, link);
+          var linkName = path[3];
+          var linkValue = this.retrieveLink(path[0], path[1], linkName);
+          record.set(linkName, linkValue);
         }
 
         // trigger record array changes
@@ -1281,18 +1439,15 @@ define("ember-orbit/store",
       },
 
       _lookupRecord: function(type, id) {
-        var typeMap = this.typeMapFor(type),
-            record = typeMap.records[id];
+        var typeMap = this.typeMapFor(type);
+        id = this._normalizeId(id);
+
+        var record = typeMap.records[id];
 
         if (record === undefined) {
           var model = get(this, 'schema').modelFor(type);
 
-          var data = {
-            store: this
-          };
-          data[get(this, 'idField')] = id;
-
-          record = model._create(data);
+          record = model._create(this, id);
 
           typeMap.records[id] = record;
         }
@@ -1308,14 +1463,14 @@ define("ember-orbit/store",
       },
 
       _lookupFromData: function(type, data) {
-        var idField = get(this, 'idField');
+        var pk = get(this, 'schema').primaryKey(type);
         if (Ember.isArray(data)) {
           var ids = data.map(function(recordData) {
-            return recordData[idField];
+            return recordData[pk];
           });
           return this._lookupRecords(type, ids);
         } else {
-          return this._lookupRecord(type, data[idField]);
+          return this._lookupRecord(type, data[pk]);
         }
       },
 
@@ -1325,6 +1480,14 @@ define("ember-orbit/store",
         return promise.finally(function() {
           requests.remove(promise);
         });
+      },
+
+      _normalizeId: function(id) {
+        if (id !== null && typeof id === 'object') {
+          return id.primaryId;
+        } else {
+          return id;
+        }
       }
     });
 
