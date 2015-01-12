@@ -613,6 +613,8 @@ define("ember-orbit/record-array-manager",
         var recordArrays = record._recordArrays;
 
         if (recordArrays) {
+          recordArrays = recordArrays.toArray();
+
           forEach(recordArrays, function(array) {
             array.removeObject(record);
           });
@@ -913,7 +915,7 @@ define("ember-orbit/record-arrays/record-array",
       },
 
       _recordRemoved: function(record) {
-        this._recordArraysForRecord(record).remove(this);
+        this._recordArraysForRecord(record).delete(this);
       },
 
       _recordsAdded: function(records) {
@@ -1519,7 +1521,7 @@ define("ember-orbit/store",
         var requests = this._requests;
         requests.add(promise);
         return promise.finally(function() {
-          requests.remove(promise);
+          requests.delete(promise);
         });
       },
 
