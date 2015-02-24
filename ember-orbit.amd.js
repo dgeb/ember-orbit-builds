@@ -428,6 +428,7 @@ define("ember-orbit/model",
       },
 
       willDestroy: function() {
+        this.trigger('didUnload');
         this._super();
 
         var store = get(this, 'store');
@@ -567,11 +568,11 @@ define("ember-orbit/record-array-manager",
        @private
        */
       _processChanges: function() {
-        forEach(this.changes, function(change) {
-          this._processChange(change.record, change.operation);
-        }, this);
+        var change;
 
-        this.changes.length = 0;
+        while (change = this.changes.shift()) {
+          this._processChange(change.record, change.operation);
+        }
       },
 
       _processChange: function(record, operation) {
