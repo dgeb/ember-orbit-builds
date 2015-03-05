@@ -1,5 +1,5 @@
 (function(global) {
-var define = global.Orbit.__defineModule__;
+var define = global.Orbit.__define__;
 var requireModule = global.Orbit.__requireModule__;
 define("ember-orbit", 
   ["ember-orbit/main","ember-orbit/store","ember-orbit/model","ember-orbit/record-array-manager","ember-orbit/schema","ember-orbit/source","ember-orbit/fields/key","ember-orbit/fields/attr","ember-orbit/fields/has-many","ember-orbit/fields/has-one","ember-orbit/links/has-many-array","ember-orbit/links/has-one-object","ember-orbit/links/link-proxy-mixin","ember-orbit/record-arrays/filtered-record-array","ember-orbit/record-arrays/record-array","exports"],
@@ -1220,7 +1220,15 @@ define("ember-orbit/store",
       },
 
       then: function(success, failure) {
-        return Ember.RSVP.all(this._requests.toArray()).then(success, failure);
+        return this.settleRequests().then(success, failure);
+      },
+
+      settleRequests: function() {
+        return Ember.RSVP.all(this._requests.toArray());
+      },
+
+      settleTransforms: function() {
+        return this.orbitSource.settleTransforms();
       },
 
       willDestroy: function() {

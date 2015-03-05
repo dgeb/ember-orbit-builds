@@ -1217,7 +1217,15 @@ define("ember-orbit/store",
       },
 
       then: function(success, failure) {
-        return Ember.RSVP.all(this._requests.toArray()).then(success, failure);
+        return this.settleRequests().then(success, failure);
+      },
+
+      settleRequests: function() {
+        return Ember.RSVP.all(this._requests.toArray());
+      },
+
+      settleTransforms: function() {
+        return this.orbitSource.settleTransforms();
       },
 
       willDestroy: function() {
