@@ -729,7 +729,7 @@ define('ember-orbit/record-array-manager', ['exports', 'ember-orbit/record-array
 
   function values(obj) {
     var result = [];
-    var keys = Ember.keys(obj);
+    var keys = Object.keys(obj);
 
     for (var i = 0; i < keys.length; i++) {
       result.push(obj[keys[i]]);
@@ -766,7 +766,7 @@ define('ember-orbit/record-arrays/filtered-record-array', ['exports', 'ember-orb
    @namespace EO
    @extends EO.RecordArray
    */
-  var FilteredRecordArray = RecordArray['default'].extend({
+  exports['default'] = RecordArray['default'].extend({
     /**
      @method filterFunction
      @param {EO.Model} record
@@ -788,12 +788,10 @@ define('ember-orbit/record-arrays/filtered-record-array', ['exports', 'ember-orb
       manager.updateFilter(this, get(this, 'type'), get(this, 'filterFunction'));
     },
 
-    updateFilter: Ember.observer(function() {
+    updateFilter: Ember.observer('filterFunction', function() {
       Ember.run.once(this, this._updateFilter);
-    }, 'filterFunction')
+    })
   });
-
-  exports['default'] = FilteredRecordArray;
 
 });
 define('ember-orbit/record-arrays/record-array', ['exports'], function (exports) {
@@ -1231,11 +1229,11 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       }, null, "OE: Store#filter of " + type));
     },
 
-    find: function(type, id) {
+    find: function(type, id, options) {
       var _this = this;
       this._verifyType(type);
 
-      var promise = this.orbitSource.find(type, id).then(function(data) {
+      var promise = this.orbitSource.find(type, id, options).then(function(data) {
         return _this._lookupFromData(type, data);
       });
 
@@ -1308,7 +1306,7 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       return this._request(promise);
     },
 
-    findLinked: function(type, id, field) {
+    findLinked: function(type, id, field, options) {
       var _this = this;
       this._verifyType(type);
       id = this._normalizeId(id);
@@ -1316,7 +1314,7 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       var linkType = get(this, 'schema').linkProperties(type, field).model;
       this._verifyType(linkType);
 
-      var promise = this.orbitSource.findLinked(type, id, field).then(function(data) {
+      var promise = this.orbitSource.findLinked(type, id, field, options).then(function(data) {
         return _this._lookupFromData(linkType, data);
       });
 
@@ -1381,7 +1379,9 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       var linkType = get(this, 'schema').linkProperties(type, field).model;
       this._verifyType(linkType);
 
-      var relatedIds = Object.keys(this.orbitSource.retrieve([type, id, '__rel', field]));
+      var links = this.orbitSource.retrieve([type, id, '__rel', field]);
+      if(links === undefined) throw new Error("Link " + [type,id,field].join("/") + " is not loaded. Add it to your includes e.g. find('" + type + "', '" + id + "', {include: ['" + field + "']})");
+      var relatedIds = Object.keys(links);
 
       if (linkType && Ember.isArray(relatedIds) && relatedIds.length > 0) {
         return this.retrieve(linkType, relatedIds);
@@ -1400,25 +1400,27 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       Ember.assert("`type` must be registered as a model in the container", get(this, 'schema').modelFor(type));
     },
 
-    _didTransform: function(operation) {
-  //    console.log('_didTransform', operation, inverse);
+    _didTransform: function(transform, result) {
+      // console.log('_didTransform', transform, result);
 
-      var path = operation.path,
-          record = this._lookupRecord(path[0], path[1]);
+      result.operations.forEach(function(operation) {
+        var path = operation.path,
+            record = this._lookupRecord(path[0], path[1]);
 
-      if (path.length === 3) {
-        // attribute changed
-        record.propertyDidChange(path[2]);
+        if (path.length === 3) {
+          // attribute changed
+          record.propertyDidChange(path[2]);
 
-      } else if (path.length === 4) {
-        // hasOne link changed
-        var linkName = path[3];
-        var linkValue = this.retrieveLink(path[0], path[1], linkName);
-        record.set(linkName, linkValue);
-      }
+        } else if (path.length === 4) {
+          // hasOne link changed
+          var linkName = path[3];
+          var linkValue = this.retrieveLink(path[0], path[1], linkName);
+          record.set(linkName, linkValue);
+        }
 
-      // trigger record array changes
-      this._recordArrayManager.recordDidChange(record, operation);
+        // trigger record array changes
+        this._recordArrayManager.recordDidChange(record, operation);
+      }, this);
     },
 
     _lookupRecord: function(type, id) {
