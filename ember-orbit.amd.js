@@ -1,4 +1,4 @@
-define('ember-orbit', ['exports', 'ember-orbit/main', 'ember-orbit/store', 'ember-orbit/model', 'ember-orbit/record-array-manager', 'ember-orbit/schema', 'ember-orbit/source', 'ember-orbit/fields/key', 'ember-orbit/fields/attr', 'ember-orbit/fields/has-many', 'ember-orbit/fields/has-one', 'ember-orbit/links/has-many-array', 'ember-orbit/links/has-one-object', 'ember-orbit/links/link-proxy-mixin', 'ember-orbit/record-arrays/filtered-record-array', 'ember-orbit/record-arrays/record-array'], function (exports, EO, Store, Model, RecordArrayManager, Schema, Source, key, attr, hasMany, hasOne, HasManyArray, HasOneObject, LinkProxyMixin, FilteredRecordArray, RecordArray) {
+define('ember-orbit', ['exports', 'ember-orbit/main', 'ember-orbit/store', 'ember-orbit/model', 'ember-orbit/record-array-manager', 'ember-orbit/schema', 'ember-orbit/source', 'ember-orbit/fields/key', 'ember-orbit/fields/attr', 'ember-orbit/fields/has-many', 'ember-orbit/fields/has-one', 'ember-orbit/links/has-many-array', 'ember-orbit/links/has-one-object', 'ember-orbit/links/link-proxy-mixin', 'ember-orbit/record-arrays/filtered-record-array', 'ember-orbit/record-arrays/record-array', 'ember-orbit/transaction'], function (exports, EO, Store, Model, RecordArrayManager, Schema, Source, key, attr, hasMany, hasOne, HasManyArray, HasOneObject, LinkProxyMixin, FilteredRecordArray, RecordArray, Transaction) {
 
 	'use strict';
 
@@ -16,6 +16,7 @@ define('ember-orbit', ['exports', 'ember-orbit/main', 'ember-orbit/store', 'embe
 	EO['default'].LinkProxyMixin = LinkProxyMixin['default'];
 	EO['default'].FilteredRecordArray = FilteredRecordArray['default'];
 	EO['default'].RecordArray = RecordArray['default'];
+	EO['default'].Transaction = Transaction['default'];
 
 	exports['default'] = EO['default'];
 
@@ -387,13 +388,17 @@ define('ember-orbit/model', ['exports', 'ember-orbit/links/has-one-object', 'emb
     },
 
     willDestroy: function() {
-      this.trigger('didUnload');
-      this._super();
+      if (this.trigger) {
+        this.trigger('didUnload');
+      }
+
+      this._super.apply(this, arguments);
 
       var store = get(this, 'store');
-      var type = get(this.constructor, 'typeKey');
-
-      store.unload(type, this.primaryId);
+      if (store) {
+        var type = get(this.constructor, 'typeKey');
+        store.unload(type, this.primaryId);
+      }
     },
 
     _assignLink: function(field, value) {
@@ -951,6 +956,12 @@ define('ember-orbit/schema', ['exports', 'orbit-common/schema'], function (expor
       }
 
       this._schema = new OrbitSchema['default'](options);
+
+      // Lazy load model definitions as they are requested.
+      var _this = this;
+      this._schema.modelNotDefined = function(type) {
+        _this.modelFor(type);
+      };
     },
 
     defineModel: function(type, modelClass) {
@@ -970,9 +981,11 @@ define('ember-orbit/schema', ['exports', 'orbit-common/schema'], function (expor
       var model = this._modelTypeMap[type];
       if (!model) {
         model = get(this, 'container').lookupFactory('model:' + type);
+
         if (!model) {
           throw new Ember.Error("No model was found for '" + type + "'");
         }
+
         model.typeKey = type;
 
         // ensure model is defined in underlying OC.Schema
@@ -1102,7 +1115,9 @@ define('ember-orbit/source', ['exports', 'orbit-common/source'], function (expor
 
       var orbitSourceSchema = get(schema, '_schema');
       var orbitSourceOptions = get(this, 'orbitSourceOptions');
-      this.orbitSource = new OrbitSourceClass(orbitSourceSchema, orbitSourceOptions);
+      orbitSourceOptions = orbitSourceOptions || {};
+      orbitSourceOptions.schema = orbitSourceSchema;
+      this.orbitSource = new OrbitSourceClass(orbitSourceOptions);
 
       Ember.assert("orbitSource must be an instance of an `OC.Source`",
         this.orbitSource instanceof OCSource['default']);
@@ -1205,7 +1220,7 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       var array;
 
       if (hasQuery) {
-        promise = this.find(type, query);
+        promise = this.query(type, query);
       } else if (length === 2) {
         filter = query;
       }
@@ -1228,6 +1243,17 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       this._verifyType(type);
 
       var promise = this.orbitSource.find(type, id, options).then(function(data) {
+        return _this._lookupFromData(type, data);
+      });
+
+      return this._request(promise);
+    },
+
+    query: function(type, query, options) {
+      var _this = this;
+      this._verifyType(type);
+
+      var promise = this.orbitSource.query(type, query, options).then(function(data) {
         return _this._lookupFromData(type, data);
       });
 
@@ -1320,7 +1346,8 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
 
       var ids;
       if (arguments.length === 1) {
-        ids = Object.keys(this.orbitSource.retrieve([type]));
+        var data = this.orbitSource.retrieve([type]);
+        ids = data ? Object.keys(data) : [];
 
       } else if (Ember.isArray(id)) {
         ids = id;
@@ -1374,7 +1401,13 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
       this._verifyType(linkType);
 
       var links = this.orbitSource.retrieve([type, id, '__rel', field]);
-      if(links === undefined) throw new Error("Link " + [type,id,field].join("/") + " is not loaded. Add it to your includes e.g. find('" + type + "', '" + id + "', {include: ['" + field + "']})");
+
+      if (links === undefined) {
+        throw new Error("Link " + [type,id,field].join("/") + " is not loaded. " +
+                        "Add it to your includes e.g. find('" + type + "', '" +
+                        id + "', {include: ['" + field + "']})");
+      }
+
       var relatedIds = Object.keys(links);
 
       if (linkType && Ember.isArray(relatedIds) && relatedIds.length > 0) {
@@ -1475,5 +1508,47 @@ define('ember-orbit/store', ['exports', 'ember-orbit/source', 'ember-orbit/recor
   });
 
   exports['default'] = Store;
+
+});
+define('ember-orbit/transaction', ['exports', 'ember-orbit/store', 'orbit-common/transaction'], function (exports, Store, OCTransaction) {
+
+  'use strict';
+
+  var get = Ember.get;
+  var set = Ember.set;
+
+  var Transaction = Store['default'].extend({
+    orbitSourceClass: OCTransaction['default'],
+    baseStore: null,
+
+    init: function() {
+      var baseStore = get(this, 'baseStore');
+
+      this.orbitSourceOptions = this.orbitSourceOptions || {};
+      this.orbitSourceOptions.baseSource = baseStore.orbitSource;
+
+      set(this, 'schema', get(baseStore, 'schema'));
+
+      this._super();
+    },
+
+    begin: function() {
+      return this.orbitSource.begin();
+    },
+
+    commit: function() {
+      return this.orbitSource.commit();
+    }
+  });
+
+  Store['default'].reopen({
+    createTransaction: function() {
+      return Transaction.create({
+        baseStore: this
+      });
+    }
+  });
+
+  exports['default'] = Transaction;
 
 });//# sourceMappingURL=ember-orbit.amd.map
